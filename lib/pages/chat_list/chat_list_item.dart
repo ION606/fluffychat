@@ -18,6 +18,7 @@ class ChatListItem extends StatelessWidget {
   final Room? space;
   final bool activeChat;
   final void Function(BuildContext context)? onLongPress;
+  final void Function(BuildContext context)? onSecondaryTap;
   final void Function()? onForget;
   final void Function() onTap;
   final String? filter;
@@ -27,6 +28,7 @@ class ChatListItem extends StatelessWidget {
     this.activeChat = false,
     required this.onTap,
     this.onLongPress,
+    this.onSecondaryTap,
     this.onForget,
     this.filter,
     this.space,
@@ -69,7 +71,11 @@ class ChatListItem extends StatelessWidget {
         child: FutureBuilder(
           future: room.name.isEmpty ? room.loadHeroUsers() : null,
           builder: (context, _) => HoverBuilder(
-            builder: (context, listTileHovered) => ListTile(
+            builder: (context, listTileHovered) => GestureDetector(
+              onSecondaryTapUp: onSecondaryTap != null
+                  ? (_) => onSecondaryTap!.call(context)
+                  : null,
+              child: ListTile(
               visualDensity: const VisualDensity(vertical: -0.5),
               contentPadding: const EdgeInsets.symmetric(horizontal: 8),
               onLongPress: () => onLongPress?.call(context),
@@ -310,7 +316,20 @@ class ChatListItem extends StatelessWidget {
                             key: ValueKey(
                               '${lastEvent?.eventId}_${lastEvent?.type}_${lastEvent?.redacted}',
                             ),
-                            future: needLastEventSender
+                            future: lastEvent?.type == EventTypes.Sticker
+                                ? Future.value(
+                                    L10n.of(context).sentAStickerBody(
+                                      lastEvent!
+                                          .senderFromMemoryOrFallback
+                                          .calcDisplayname(
+                                            i18n: MatrixLocals(
+                                              L10n.of(context),
+                                            ),
+                                          ),
+                                      lastEvent.body,
+                                    ),
+                                  )
+                                : needLastEventSender
                                 ? lastEvent.calcLocalizedBody(
                                     MatrixLocals(L10n.of(context)),
                                     hideReply: true,
@@ -323,7 +342,18 @@ class ChatListItem extends StatelessWidget {
                                             room.lastEvent?.senderId),
                                   )
                                 : null,
-                            initialData: lastEvent?.calcLocalizedBodyFallback(
+                            initialData: lastEvent?.type == EventTypes.Sticker
+                                ? L10n.of(context).sentAStickerBody(
+                                    lastEvent!
+                                        .senderFromMemoryOrFallback
+                                        .calcDisplayname(
+                                          i18n: MatrixLocals(
+                                            L10n.of(context),
+                                          ),
+                                        ),
+                                    lastEvent.body,
+                                  )
+                                : lastEvent?.calcLocalizedBodyFallback(
                               MatrixLocals(L10n.of(context)),
                               hideReply: true,
                               hideEdit: true,
@@ -391,6 +421,7 @@ class ChatListItem extends StatelessWidget {
                       icon: const Icon(Icons.delete_outlined),
                       onPressed: onForget,
                     ),
+            ),
             ),
           ),
         ),

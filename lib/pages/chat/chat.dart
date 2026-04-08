@@ -7,6 +7,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluffychat/config/setting_keys.dart';
+import 'package:pasteboard/pasteboard.dart';
 import 'package:fluffychat/config/themes.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/chat/chat_view.dart';
@@ -309,6 +310,32 @@ class ChatController extends State<ChatPageWithRoom>
   }
 
   KeyEventResult _customEnterKeyHandling(FocusNode node, KeyEvent evt) {
+    if (evt is KeyDownEvent &&
+        evt.logicalKey == LogicalKeyboardKey.arrowUp &&
+        !PlatformInfos.isMobile &&
+        editEvent == null &&
+        replyEvent == null &&
+        sendController.text.isEmpty) {
+      _editLastSentMessage();
+      return KeyEventResult.handled;
+    }
+
+    if (evt is KeyDownEvent &&
+        evt.logicalKey == LogicalKeyboardKey.keyV &&
+        (HardwareKeyboard.instance.isControlPressed ||
+            HardwareKeyboard.instance.isMetaPressed) &&
+        !PlatformInfos.isMobile) {
+      _handleClipboardImagePaste();
+      return KeyEventResult.handled;
+    }
+
+    if (evt is KeyDownEvent &&
+        evt.logicalKey == LogicalKeyboardKey.escape &&
+        editEvent != null) {
+      _cancelEditWithConfirmation();
+      return KeyEventResult.handled;
+    }
+
     if (!HardwareKeyboard.instance.isShiftPressed &&
         evt.logicalKey.keyLabel == 'Enter' &&
         AppSettings.sendOnEnter.value) {
@@ -659,6 +686,32 @@ class ChatController extends State<ChatPageWithRoom>
         threadLastEventId: threadLastEventId,
       ),
     );
+  }
+
+  Future<void> _handleClipboardImagePaste() async {
+    final image = await Pasteboard.image;
+    if (image != null) {
+      await sendImageFromClipBoard(image);
+      return;
+    }
+    // No image in clipboard — fall back to pasting text
+    final textData = await Clipboard.getData('text/plain');
+    if (textData?.text != null) {
+      final selection = sendController.selection;
+      final text = sendController.text;
+      final newText = text.replaceRange(
+        selection.start,
+        selection.end,
+        textData!.text!,
+      );
+      sendController.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(
+          offset: selection.start + textData.text!.length,
+        ),
+      );
+      onInputBarChanged(sendController.text);
+    }
   }
 
   Future<void> openCameraAction() async {
@@ -1142,6 +1195,45 @@ class ChatController extends State<ChatPageWithRoom>
     inputFocus.requestFocus();
   }
 
+  void _editLastSentMessage() {
+    if (timeline == null) return;
+
+    final events = timeline!.events.filterByVisibleInGui(
+      threadId: activeThreadId,
+    );
+
+    final lastOwnMessage = events.firstWhereOrNull(
+      (e) =>
+          e.type == EventTypes.Message &&
+          e.messageType == MessageTypes.Text &&
+          e.status.isSent &&
+          !e.redacted &&
+          currentRoomBundle.any((c) => c?.userID == e.senderId),
+    );
+
+    if (lastOwnMessage == null) return;
+
+    final client = currentRoomBundle.firstWhere(
+      (c) => c?.userID == lastOwnMessage.senderId,
+      orElse: () => null,
+    );
+    if (client == null) return;
+
+    setSendingClient(client);
+    setState(() {
+      pendingText = sendController.text;
+      editEvent = lastOwnMessage;
+      sendController.text = editEvent!
+          .getDisplayEvent(timeline!)
+          .calcLocalizedBodyFallback(
+            MatrixLocals(L10n.of(context)),
+            withSenderNamePrefix: false,
+            hideReply: true,
+          );
+    });
+    inputFocus.requestFocus();
+  }
+
   Future<void> goToNewRoomAction() async {
     final result = await showFutureLoadingDialog(
       context: context,
@@ -1392,6 +1484,29 @@ class ChatController extends State<ChatPageWithRoom>
     replyEvent = null;
     editEvent = null;
   });
+
+  Future<void> _cancelEditWithConfirmation() async {
+    final originalText = editEvent!
+        .getDisplayEvent(timeline!)
+        .calcLocalizedBodyFallback(
+          MatrixLocals(L10n.of(context)),
+          withSenderNamePrefix: false,
+          hideReply: true,
+        );
+
+    if (sendController.text != originalText) {
+      final result = await showOkCancelAlertDialog(
+        context: context,
+        title: L10n.of(context).areYouSure,
+        message: L10n.of(context).discardEdits,
+        okLabel: L10n.of(context).ok,
+        cancelLabel: L10n.of(context).cancel,
+      );
+      if (result == OkCancelResult.cancel) return;
+    }
+
+    cancelReplyEventAction();
+  }
 
   late final ValueNotifier<bool> _displayChatDetailsColumn;
 
