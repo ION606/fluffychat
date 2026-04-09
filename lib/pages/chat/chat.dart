@@ -380,7 +380,21 @@ class ChatController extends State<ChatPageWithRoom>
     }
 
     if (evt is KeyDownEvent &&
+        evt.logicalKey == LogicalKeyboardKey.arrowUp &&
+        !PlatformInfos.isMobile &&
+        editEvent == null &&
+        replyEvent == null &&
+        sendController.text.isEmpty) {
+      _editLastSentMessage();
+      return KeyEventResult.handled;
+    }
+
+    if (evt is KeyDownEvent &&
         evt.logicalKey == LogicalKeyboardKey.escape) {
+      if (editEvent != null) {
+        _cancelEditWithConfirmation();
+        return KeyEventResult.handled;
+      }
       if (showEmojiPicker) {
         hideEmojiPicker();
         inputFocus.requestFocus();
@@ -1248,6 +1262,45 @@ class ChatController extends State<ChatPageWithRoom>
     inputFocus.requestFocus();
   }
 
+  void _editLastSentMessage() {
+    if (timeline == null) return;
+
+    final events = timeline!.events.filterByVisibleInGui(
+      threadId: activeThreadId,
+    );
+
+    final lastOwnMessage = events.firstWhereOrNull(
+      (e) =>
+          e.type == EventTypes.Message &&
+          e.messageType == MessageTypes.Text &&
+          e.status.isSent &&
+          !e.redacted &&
+          currentRoomBundle.any((c) => c?.userID == e.senderId),
+    );
+
+    if (lastOwnMessage == null) return;
+
+    final client = currentRoomBundle.firstWhere(
+      (c) => c?.userID == lastOwnMessage.senderId,
+      orElse: () => null,
+    );
+    if (client == null) return;
+
+    setSendingClient(client);
+    setState(() {
+      pendingText = sendController.text;
+      editEvent = lastOwnMessage;
+      sendController.text = editEvent!
+          .getDisplayEvent(timeline!)
+          .calcLocalizedBodyFallback(
+            MatrixLocals(L10n.of(context)),
+            withSenderNamePrefix: false,
+            hideReply: true,
+          );
+    });
+    inputFocus.requestFocus();
+  }
+
   Future<void> goToNewRoomAction() async {
     final result = await showFutureLoadingDialog(
       context: context,
@@ -1498,6 +1551,29 @@ class ChatController extends State<ChatPageWithRoom>
     replyEvent = null;
     editEvent = null;
   });
+
+  Future<void> _cancelEditWithConfirmation() async {
+    final originalText = editEvent!
+        .getDisplayEvent(timeline!)
+        .calcLocalizedBodyFallback(
+          MatrixLocals(L10n.of(context)),
+          withSenderNamePrefix: false,
+          hideReply: true,
+        );
+
+    if (sendController.text != originalText) {
+      final result = await showOkCancelAlertDialog(
+        context: context,
+        title: L10n.of(context).areYouSure,
+        message: L10n.of(context).discardEdits,
+        okLabel: L10n.of(context).ok,
+        cancelLabel: L10n.of(context).cancel,
+      );
+      if (result == OkCancelResult.cancel) return;
+    }
+
+    cancelReplyEventAction();
+  }
 
   late final ValueNotifier<bool> _displayChatDetailsColumn;
 
