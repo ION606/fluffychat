@@ -35,6 +35,32 @@ class SettingsChatView extends StatelessWidget {
                 setting: AppSettings.renderHtml,
               ),
               SettingsSwitchListTile.adaptive(
+                title: L10n.of(context).linkPreviews,
+                subtitle: L10n.of(context).linkPreviewsDescription,
+                setting: AppSettings.linkPreviews,
+              ),
+              SwitchListTile.adaptive(
+                title: Text(L10n.of(context).linkPreviewsInEncrypted),
+                subtitle: Text(
+                  L10n.of(context).linkPreviewsInEncryptedDescription,
+                ),
+                value: AppSettings.linkPreviewsInEncrypted.value,
+                onChanged: controller.toggleEncryptedPreviews,
+              ),
+              ListTile(
+                title: Text(L10n.of(context).linkPreviewProxy),
+                subtitle: Text(
+                  AppSettings.linkPreviewProxy.value.isEmpty
+                      ? L10n.of(context).linkPreviewProxyDescription
+                      : AppSettings.linkPreviewProxy.value,
+                ),
+                trailing: const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Icon(Icons.edit_outlined),
+                ),
+                onTap: controller.editProxyUrl,
+              ),
+              SettingsSwitchListTile.adaptive(
                 title: L10n.of(context).hideRedactedMessages,
                 subtitle: L10n.of(context).hideRedactedMessagesBody,
                 setting: AppSettings.hideRedactedEvents,

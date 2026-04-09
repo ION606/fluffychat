@@ -27,6 +27,12 @@ enum AppSettings<T> {
     'event_id_only',
   ),
   renderHtml<bool>('chat.fluffy.renderHtml', true),
+  linkPreviews<bool>('chat.fluffy.link_previews', true),
+  linkPreviewsInEncrypted<bool>(
+    'chat.fluffy.link_previews_in_encrypted',
+    false,
+  ),
+  linkPreviewProxy<String>('chat.fluffy.link_preview_proxy', ''),
   fontSizeFactor<double>('chat.fluffy.font_size_factor', 1.0),
   hideRedactedEvents<bool>('chat.fluffy.hideRedactedEvents', false),
   hideUnknownEvents<bool>('chat.fluffy.hideUnknownEvents', true),

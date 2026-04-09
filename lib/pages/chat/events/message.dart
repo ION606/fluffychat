@@ -22,6 +22,7 @@ import 'message_content.dart';
 import 'message_reactions.dart';
 import 'reply_content.dart';
 import 'state_message.dart';
+import 'url_preview_card.dart';
 
 class Message extends StatelessWidget {
   final Event event;
@@ -534,6 +535,24 @@ class Message extends StatelessWidget {
                                               selected: selected,
                                               bigEmojis: bigEmojis,
                                             ),
+                                            if (AppSettings.linkPreviews.value &&
+                                                (!event.room.encrypted ||
+                                                    AppSettings
+                                                        .linkPreviewsInEncrypted
+                                                        .value) &&
+                                                !displayEvent.redacted &&
+                                                const {
+                                                  MessageTypes.Text,
+                                                  MessageTypes.Notice,
+                                                  MessageTypes.Emote,
+                                                }.contains(
+                                                  displayEvent.messageType,
+                                                ))
+                                              UrlPreviewCard(
+                                                event: displayEvent,
+                                                textColor: textColor,
+                                                linkColor: linkColor,
+                                              ),
                                             if (event.hasAggregatedEvents(
                                               timeline,
                                               RelationshipTypes.edit,
