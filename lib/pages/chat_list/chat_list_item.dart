@@ -1,6 +1,7 @@
 import 'package:fluffychat/config/app_config.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/chat_list/unread_bubble.dart';
+import 'package:fluffychat/utils/matrix_sdk_extensions/event_plain_text_body.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:fluffychat/utils/room_status_extension.dart';
 import 'package:fluffychat/widgets/adaptive_dialogs/show_ok_cancel_alert_dialog.dart';
@@ -330,12 +331,10 @@ class ChatListItem extends StatelessWidget {
                                     ),
                                   )
                                 : needLastEventSender
-                                ? lastEvent.calcLocalizedBody(
+                                ? lastEvent.calcLocalizedBodyFixed(
                                     MatrixLocals(L10n.of(context)),
                                     hideReply: true,
                                     hideEdit: true,
-                                    plaintextBody: true,
-                                    removeMarkdown: true,
                                     withSenderNamePrefix:
                                         (!isDirectChat ||
                                         directChatMatrixId !=
@@ -353,12 +352,10 @@ class ChatListItem extends StatelessWidget {
                                         ),
                                     lastEvent.body,
                                   )
-                                : lastEvent?.calcLocalizedBodyFallback(
+                                : lastEvent?.calcLocalizedBodyFallbackFixed(
                               MatrixLocals(L10n.of(context)),
                               hideReply: true,
                               hideEdit: true,
-                              plaintextBody: true,
-                              removeMarkdown: true,
                               withSenderNamePrefix:
                                   (!isDirectChat ||
                                   directChatMatrixId !=
