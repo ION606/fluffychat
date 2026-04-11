@@ -15,7 +15,6 @@ import 'package:matrix/matrix.dart';
 
 import '../../config/themes.dart';
 import '../../widgets/adaptive_dialogs/user_dialog.dart';
-import '../../widgets/member_actions_popup_menu_button.dart';
 import '../../widgets/matrix.dart';
 import 'chat_list_header.dart';
 
@@ -241,19 +240,8 @@ class ChatListViewBody extends StatelessWidget {
                       onTap: () => controller.onChatTap(room),
                       onLongPress: (context) =>
                           controller.chatContextAction(room, context, space),
-                      onSecondaryTap: (context) {
-                        final directChatMatrixId = room.directChatMatrixID;
-                        if (directChatMatrixId != null) {
-                          showMemberActionsPopupMenu(
-                            context: context,
-                            user: room.unsafeGetUserFromMemoryOrFallback(
-                              directChatMatrixId,
-                            ),
-                          );
-                        } else {
-                          controller.chatContextAction(room, context, space);
-                        }
-                      },
+                      onSecondaryTap: (context) =>
+                          controller.chatContextAction(room, context, space),
                       activeChat: controller.activeChat == room.id,
                     );
                   },

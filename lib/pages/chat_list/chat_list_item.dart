@@ -72,8 +72,8 @@ class ChatListItem extends StatelessWidget {
           future: room.name.isEmpty ? room.loadHeroUsers() : null,
           builder: (context, _) => HoverBuilder(
             builder: (context, listTileHovered) => GestureDetector(
-              onSecondaryTapUp: onSecondaryTap != null
-                  ? (_) => onSecondaryTap!.call(context)
+              onSecondaryTap: onSecondaryTap != null
+                  ? () => onSecondaryTap!.call(context)
                   : null,
               child: ListTile(
               visualDensity: const VisualDensity(vertical: -0.5),
